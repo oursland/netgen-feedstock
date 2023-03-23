@@ -1,0 +1,39 @@
+name: "Build and Upload Package"
+
+on: [push]
+
+jobs:
+  build:
+    name: ${{ matrix.python-version }}, ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["ubuntu-latest", "macos-latest"] #, "windows-latest"]
+        python-version: ["3.11", "3.10", "3.9", "3.8"]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          activate-environment: build
+          auto-update-conda: true
+          channel-priority: true
+          channels: conda-forge,defaults
+          mamba-version: "*"
+          python-version: ${{ matrix.python-version }}
+      - name: Conda info
+        shell: bash -el {0}
+        run: |
+          conda info
+          conda list
+          conda config --show-sources
+          conda config --show
+      - name: Build Dependencies
+        shell: bash -el {0}
+        run: |
+          conda install anaconda-client conda-build
+      - name: Build
+        shell: bash -el {0}
+        run: |
+          conda config --set anaconda_upload yes
+          conda build --token ${{ secrets.ANACONDA_TOKEN }} .
